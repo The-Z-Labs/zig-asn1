@@ -1,16 +1,14 @@
 const std = @import("std");
-const deps = @import("./deps.zig");
 
-pub fn build(b: *std.build.Builder) void {
-    b.prominent_compile_errors = true;
-
+pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
+    const optimize = b.standardOptimizeOption(.{});
 
-    const tests = b.addTest("test.zig");
-    tests.setTarget(target);
-    tests.setBuildMode(mode);
-    deps.addAllTo(tests);
+    const tests = b.addTest(.{
+        .root_source_file = .{ .path = "test.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
 
     const tests_step = b.step("test", "Run unit tests");
     tests_step.dependOn(&tests.step);
