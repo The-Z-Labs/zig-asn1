@@ -1,6 +1,6 @@
 const std = @import("std");
 const string = []const u8;
-const asn1 = @import("asn1");
+const asn1 = @import("asn1.zig");
 const assert = std.debug.assert;
 
 // test certificate from https://tls13.xargs.org/certificate.html

@@ -1,44 +1,44 @@
 const std = @import("std");
 const string = []const u8;
 const assert = std.debug.assert;
-const extras = @import("extras");
 
 pub const Tag = enum(u8) {
     // zig fmt: off
-    end_of_content      = @as(u8, 0) | @enumToInt(PC.primitive),
-    boolean             = @as(u8, 1) | @enumToInt(PC.primitive),
-    integer             = @as(u8, 2) | @enumToInt(PC.primitive),
-    bit_string          = @as(u8, 3) | @enumToInt(PC.primitive),
-    octet_string        = @as(u8, 4) | @enumToInt(PC.primitive),
-    null                = @as(u8, 5) | @enumToInt(PC.primitive),
-    object_identifier   = @as(u8, 6) | @enumToInt(PC.primitive),
-    object_descriptor   = @as(u8, 7) | @enumToInt(PC.primitive),
-    external_type       = @as(u8, 8) | @enumToInt(PC.primitive),
-    real_type           = @as(u8, 9) | @enumToInt(PC.primitive),
-    enumerated_type     = @as(u8,10) | @enumToInt(PC.primitive),
-    embedded_pdv        = @as(u8,11) | @enumToInt(PC.primitive),
-    utf8_string         = @as(u8,12) | @enumToInt(PC.primitive),
-    relative_oid        = @as(u8,13) | @enumToInt(PC.primitive),
-    time                = @as(u8,14) | @enumToInt(PC.primitive),
-    _reserved2          = @as(u8,15) | @enumToInt(PC.primitive),
-    sequence            = @as(u8,16) | @enumToInt(PC.constructed),
-    set                 = @as(u8,17) | @enumToInt(PC.constructed),
-    numeric_string      = @as(u8,18) | @enumToInt(PC.primitive),
-    printable_string    = @as(u8,19) | @enumToInt(PC.primitive),
-    teletex_string      = @as(u8,20) | @enumToInt(PC.primitive),
-    videotex_string     = @as(u8,21) | @enumToInt(PC.primitive),
-    ia5_string          = @as(u8,22) | @enumToInt(PC.primitive),
-    utc_time            = @as(u8,23) | @enumToInt(PC.primitive),
-    generalized_time    = @as(u8,24) | @enumToInt(PC.primitive),
-    graphic_string      = @as(u8,25) | @enumToInt(PC.primitive),
-    visible_string      = @as(u8,26) | @enumToInt(PC.primitive),
-    general_string      = @as(u8,27) | @enumToInt(PC.primitive),
-    universal_string    = @as(u8,28) | @enumToInt(PC.primitive),
-    unrestricted_string = @as(u8,29) | @enumToInt(PC.primitive),
-    bmp_string          = @as(u8,30) | @enumToInt(PC.primitive),
-    date                = @as(u8,31) | @enumToInt(PC.primitive),
+    end_of_content      = @as(u8, 0) | @intFromEnum(PC.primitive),
+    boolean             = @as(u8, 1) | @intFromEnum(PC.primitive),
+    integer             = @as(u8, 2) | @intFromEnum(PC.primitive),
+    bit_string          = @as(u8, 3) | @intFromEnum(PC.primitive),
+    octet_string        = @as(u8, 4) | @intFromEnum(PC.primitive),
+    null                = @as(u8, 5) | @intFromEnum(PC.primitive),
+    object_identifier   = @as(u8, 6) | @intFromEnum(PC.primitive),
+    object_descriptor   = @as(u8, 7) | @intFromEnum(PC.primitive),
+    external_type       = @as(u8, 8) | @intFromEnum(PC.primitive),
+    real_type           = @as(u8, 9) | @intFromEnum(PC.primitive),
+    enumerated_type     = @as(u8,10) | @intFromEnum(PC.primitive),
+    embedded_pdv        = @as(u8,11) | @intFromEnum(PC.primitive),
+    utf8_string         = @as(u8,12) | @intFromEnum(PC.primitive),
+    relative_oid        = @as(u8,13) | @intFromEnum(PC.primitive),
+    time                = @as(u8,14) | @intFromEnum(PC.primitive),
+    _reserved2          = @as(u8,15) | @intFromEnum(PC.primitive),
+    sequence            = @as(u8,16) | @intFromEnum(PC.constructed),
+    set                 = @as(u8,17) | @intFromEnum(PC.constructed),
+    numeric_string      = @as(u8,18) | @intFromEnum(PC.primitive),
+    printable_string    = @as(u8,19) | @intFromEnum(PC.primitive),
+    teletex_string      = @as(u8,20) | @intFromEnum(PC.primitive),
+    videotex_string     = @as(u8,21) | @intFromEnum(PC.primitive),
+    ia5_string          = @as(u8,22) | @intFromEnum(PC.primitive),
+    utc_time            = @as(u8,23) | @intFromEnum(PC.primitive),
+    generalized_time    = @as(u8,24) | @intFromEnum(PC.primitive),
+    graphic_string      = @as(u8,25) | @intFromEnum(PC.primitive),
+    visible_string      = @as(u8,26) | @intFromEnum(PC.primitive),
+    general_string      = @as(u8,27) | @intFromEnum(PC.primitive),
+    universal_string    = @as(u8,28) | @intFromEnum(PC.primitive),
+    unrestricted_string = @as(u8,29) | @intFromEnum(PC.primitive),
+    bmp_string          = @as(u8,30) | @intFromEnum(PC.primitive),
+    date                = @as(u8,31) | @intFromEnum(PC.primitive),
     _,
 
+    
     const PC = enum(u8) {
         primitive   = 0b00000000,
         constructed = 0b00100000,
@@ -53,35 +53,35 @@ pub const Tag = enum(u8) {
     // zig fmt: on
 
     pub fn int(tag: Tag) u8 {
-        return @enumToInt(tag);
+        return @intFromEnum(tag);
     }
 
     pub fn extra(pc: PC, class: Class, ty: u5) Tag {
         var res: u8 = ty;
-        res |= @enumToInt(pc);
-        res |= @enumToInt(class);
-        return @intToEnum(Tag, res);
+        res |= @intFromEnum(pc);
+        res |= @intFromEnum(class);
+        return @enumFromInt(res);
     }
 
     pub fn read(reader: anytype) !Tag {
-        return @intToEnum(Tag, try reader.readByte());
+        return @enumFromInt(try reader.readByte());
     }
 };
 
 pub const Length = packed struct(u8) {
     len: u7,
-    form: enum { short, long },
+    form: enum(u1) { short, long },
 
     pub fn read(reader: anytype) !u64 {
-        const octet = @bitCast(Length, try reader.readByte());
+        const octet: Length = @bitCast(try reader.readByte());
         switch (octet.form) {
             .short => return octet.len,
             .long => {
                 var res: u64 = 0;
                 assert(octet.len <= 8); // long form length exceeds bounds of u64
                 assert(octet.len > 0); // TODO indefinite form
-                for (extras.range(octet.len)) |_, i| {
-                    res |= (@as(u64, try reader.readByte()) << @intCast(u6, 8 * (octet.len - 1 - @intCast(u6, i))));
+                for (0..octet.len) |i| {
+                    res |= (@as(u64, try reader.readByte()) << @as(u6, @intCast(8 * (octet.len - 1 - @as(u6, @intCast(i))))));
                 }
                 return res;
             },
@@ -114,8 +114,8 @@ pub fn readInt(reader: anytype, comptime Int: type) !Int {
     assert(len > 0);
     assert(len <= @sizeOf(Int));
     var res: Int = 0;
-    for (extras.range(len)) |_, i| {
-        res |= (@as(Int, try reader.readByte()) << @intCast(L2Int, 8 * (len - 1 - @intCast(L2Int, i))));
+    for (0..len) |i| {
+        res |= (@as(Int, try reader.readByte()) << @as(L2Int, @intCast(8 * (len - 1 - @as(L2Int, @intCast(i))))));
     }
     return res;
 }
