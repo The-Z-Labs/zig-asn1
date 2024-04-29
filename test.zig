@@ -67,6 +67,17 @@ test {
     //        msg-type        [2] INTEGER (10 -- AS -- | 12 -- TGS --),
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), 3);
     try expectEqual(try asn1.readInt(r, u8), 10);
+
+    // KDC-REQ-BODY    ::= SEQUENCE {
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 4), 0x6e);
+    try expectTag(r, .sequence, 0x6c);
+
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 7);
+
+    //        kdc-options             [0] KDCOptions,
+    try expectTag(r, .bit_string, 5);
+    try expectBytes(r, &.{0x00}); // padding?
+    try expectBytes(r, &.{ 0x40, 0x00, 0x00, 0x00 }); // options
 }
 
 // test certificate from https://tls13.xargs.org/certificate.html
