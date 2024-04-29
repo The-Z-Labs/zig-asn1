@@ -3,6 +3,72 @@ const string = []const u8;
 const asn1 = @import("asn1.zig");
 const assert = std.debug.assert;
 
+test {
+    // AS-REQ          ::= [APPLICATION 10] KDC-REQ
+    //
+    // TGS-REQ         ::= [APPLICATION 12] KDC-REQ
+    //
+    // KDC-REQ         ::= SEQUENCE {
+    //        -- NOTE: first tag is [1], not [0]
+    //        pvno            [1] INTEGER (5) ,
+    //        msg-type        [2] INTEGER (10 -- AS -- | 12 -- TGS --),
+    //        padata          [3] SEQUENCE OF PA-DATA OPTIONAL
+    //                            -- NOTE: not empty --,
+    //        req-body        [4] KDC-REQ-BODY
+    // }
+    //
+    // KDC-REQ-BODY    ::= SEQUENCE {
+    //        kdc-options             [0] KDCOptions,
+    //        cname                   [1] PrincipalName OPTIONAL
+    //                                    -- Used only in AS-REQ --,
+    //        realm                   [2] Realm
+    //                                    -- Server's realm
+    //                                    -- Also client's in AS-REQ --,
+    //        sname                   [3] PrincipalName OPTIONAL,
+    //        from                    [4] KerberosTime OPTIONAL,
+    //        till                    [5] KerberosTime,
+    //        rtime                   [6] KerberosTime OPTIONAL,
+    //        nonce                   [7] UInt32,
+    //        etype                   [8] SEQUENCE OF Int32 -- EncryptionType
+    //                                    -- in preference order --,
+    //        addresses               [9] HostAddresses OPTIONAL,
+    //        enc-authorization-data  [10] EncryptedData OPTIONAL
+    //                                    -- AuthorizationData --,
+    //        additional-tickets      [11] SEQUENCE OF Ticket OPTIONAL
+    //                                       -- NOTE: not empty
+    // }
+    const krb_as_req = [_]u8{
+        0x00, 0x00, 0x00, 0x7e, 0x6a, 0x7c, 0x30, 0x7a, 0xa1, 0x03, 0x02, 0x01, 0x05, 0xa2, 0x03, 0x02,
+        0x01, 0x0a, 0xa4, 0x6e, 0x30, 0x6c, 0xa0, 0x07, 0x03, 0x05, 0x00, 0x40, 0x00, 0x00, 0x00, 0xa1,
+        0x11, 0x30, 0x0f, 0xa0, 0x03, 0x02, 0x01, 0x01, 0xa1, 0x08, 0x30, 0x06, 0x1b, 0x04, 0x6e, 0x6d,
+        0x61, 0x70, 0xa2, 0x07, 0x1b, 0x05, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0xa3, 0x1a, 0x30, 0x18, 0xa0,
+        0x03, 0x02, 0x01, 0x02, 0xa1, 0x11, 0x30, 0x0f, 0x1b, 0x06, 0x6b, 0x72, 0x62, 0x74, 0x67, 0x74,
+        0x1b, 0x05, 0x5a, 0x5a, 0x5a, 0x5a, 0x5a, 0xa5, 0x11, 0x18, 0x0f, 0x32, 0x30, 0x32, 0x34, 0x30,
+        0x34, 0x32, 0x37, 0x30, 0x34, 0x31, 0x32, 0x34, 0x34, 0x5a, 0xa7, 0x06, 0x02, 0x04, 0x09, 0x4a,
+        0x76, 0x81, 0xa8, 0x0e, 0x30, 0x0c, 0x02, 0x01, 0x12, 0x02, 0x01, 0x11, 0x02, 0x01, 0x10, 0x02,
+        0x01, 0x17,
+    };
+    var fbs = std.io.fixedBufferStream(&krb_as_req);
+    const r = fbs.reader();
+
+    // TODO: ?
+    try expectBytes(r, &.{ 0x00, 0x00, 0x00, 0x7e });
+
+    // AS-REQ          ::= [APPLICATION 10] KDC-REQ
+    try expectTag(r, asn1.Tag.extra(.constructed, .application, 10), 0x7c);
+
+    // KDC-REQ         ::= SEQUENCE {
+    try expectTag(r, .sequence, 0x7a);
+
+    //        pvno            [1] INTEGER (5) , (version)
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), 3);
+    try expectEqual(try asn1.readInt(r, u8), 5);
+
+    //        msg-type        [2] INTEGER (10 -- AS -- | 12 -- TGS --),
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), 3);
+    try expectEqual(try asn1.readInt(r, u8), 10);
+}
+
 // test certificate from https://tls13.xargs.org/certificate.html
 test {
     const cert = [_]u8{
