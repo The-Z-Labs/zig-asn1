@@ -68,8 +68,10 @@ test {
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), 3);
     try expectEqual(try asn1.readInt(r, u8), 10);
 
-    // KDC-REQ-BODY    ::= SEQUENCE {
+    // 0xa4
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 4), 0x6e);
+
+    // KDC-REQ-BODY    ::= SEQUENCE {
     try expectTag(r, .sequence, 0x6c);
 
     //        kdc-options             [0] KDCOptions,
@@ -78,8 +80,10 @@ test {
     try expectBytes(r, &.{0x00}); // padding?
     try expectEqual(try r.readInt(u32, .big), 0x40000000); // options
 
-    // { user } (encodePrincipal)
+    // 0xa1
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), 17);
+
+    // { user } (encodePrincipal)
     try expectTag(r, .sequence, 15);
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 3);
     try expectEqual(try asn1.readInt(r, u8), 1); // type == 1 (NT-PRINCIPAL)
@@ -88,13 +92,17 @@ test {
     try expectTag(r, .general_string, 4);
     try expectBytes(r, "nmap");
 
+    // 0xa2
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), 7);
+
     // realm
-    try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), 7); // 0xa2
     try expectTag(r, .general_string, 5);
     try expectBytes(r, "ZZZZZ");
 
-    // { "krbtgt", realm } (encodePrincipal)
+    // 0xa3
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 3), 26);
+
+    // { "krbtgt", realm } (encodePrincipal)
     try expectTag(r, .sequence, 24);
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 3);
     try expectEqual(try asn1.readInt(r, u8), 2); // type == 2 (NT-SRV-INST)
@@ -105,8 +113,37 @@ test {
     try expectTag(r, .general_string, 5);
     try expectBytes(r, "ZZZZZ");
 
-    // from/to
+    // 0xa5
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 5), 17);
+
+    // from/to
+    {
+        try std.testing.expectEqual(try r.readByte(), asn1.Tag.int(.generalized_time));
+        const len = try asn1.Length.read(r);
+        _ = try r.skipBytes(len, .{});
+    }
+
+    // 0xa7
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 7), 6);
+
+    // nonce
+    try expectEqual(try asn1.readInt(r, u32), 155874945);
+
+    // 0xa8
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 8), 14);
+
+    // EncryptionTypes = {
+    //      { ['aes256-cts-hmac-sha1-96'] = 18 },
+    //      { ['aes128-cts-hmac-sha1-96'] = 17 },
+    //      { ['des3-cbc-sha1'] = 16 },
+    //      { ['rc4-hmac'] = 23 },
+    // },
+    //        etype                   [8] SEQUENCE OF Int32 -- EncryptionType
+    try expectTag(r, .sequence, 12);
+    try expectEqual(try asn1.readInt(r, u8), 18);
+    try expectEqual(try asn1.readInt(r, u8), 17);
+    try expectEqual(try asn1.readInt(r, u8), 16);
+    try expectEqual(try asn1.readInt(r, u8), 23);
 }
 
 // test certificate from https://tls13.xargs.org/certificate.html
