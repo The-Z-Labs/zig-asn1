@@ -78,7 +78,7 @@ test {
     try expectBytes(r, &.{0x00}); // padding?
     try expectEqual(try r.readInt(u32, .big), 0x40000000); // options
 
-    // user (encodePrincipal)
+    // { user } (encodePrincipal)
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), 17);
     try expectTag(r, .sequence, 15);
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 3);
@@ -92,6 +92,21 @@ test {
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), 7); // 0xa2
     try expectTag(r, .general_string, 5);
     try expectBytes(r, "ZZZZZ");
+
+    // { "krbtgt", realm } (encodePrincipal)
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 3), 26);
+    try expectTag(r, .sequence, 24);
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 3);
+    try expectEqual(try asn1.readInt(r, u8), 2); // type == 2 (NT-SRV-INST)
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), 17);
+    try expectTag(r, .sequence, 15);
+    try expectTag(r, .general_string, 6);
+    try expectBytes(r, "krbtgt");
+    try expectTag(r, .general_string, 5);
+    try expectBytes(r, "ZZZZZ");
+
+    // from/to
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 5), 17);
 }
 
 // test certificate from https://tls13.xargs.org/certificate.html
