@@ -51,8 +51,8 @@ test {
     var fbs = std.io.fixedBufferStream(&krb_as_req);
     const r = fbs.reader();
 
-    // TODO: ?
-    try expectBytes(r, &.{ 0x00, 0x00, 0x00, 0x7e });
+    // Length of the entire packet
+    try expectEqual(try r.readInt(u32, .big), 0x7e);
 
     // AS-REQ          ::= [APPLICATION 10] KDC-REQ
     try expectTag(r, asn1.Tag.extra(.constructed, .application, 10), 0x7c);
@@ -72,12 +72,26 @@ test {
     try expectTag(r, asn1.Tag.extra(.constructed, .context, 4), 0x6e);
     try expectTag(r, .sequence, 0x6c);
 
-    try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 7);
-
     //        kdc-options             [0] KDCOptions,
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 7);
     try expectTag(r, .bit_string, 5);
     try expectBytes(r, &.{0x00}); // padding?
-    try expectBytes(r, &.{ 0x40, 0x00, 0x00, 0x00 }); // options
+    try expectEqual(try r.readInt(u32, .big), 0x40000000); // options
+
+    // user (encodePrincipal)
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), 17);
+    try expectTag(r, .sequence, 15);
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 3);
+    try expectEqual(try asn1.readInt(r, u8), 1); // type == 1 (NT-PRINCIPAL)
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), 8);
+    try expectTag(r, .sequence, 6);
+    try expectTag(r, .general_string, 4);
+    try expectBytes(r, "nmap");
+
+    // realm
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), 7); // 0xa2
+    try expectTag(r, .general_string, 5);
+    try expectBytes(r, "ZZZZZ");
 }
 
 // test certificate from https://tls13.xargs.org/certificate.html
