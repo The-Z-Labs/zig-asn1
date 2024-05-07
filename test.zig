@@ -4,6 +4,9 @@ const asn1 = @import("asn1.zig");
 const assert = std.debug.assert;
 
 test {
+    // https://svn.nmap.org/nmap/nselib/asn1.lua
+    // https://svn.nmap.org/nmap/scripts/krb5-enum-users.nse
+    //
     // AS-REQ          ::= [APPLICATION 10] KDC-REQ
     //
     // TGS-REQ         ::= [APPLICATION 12] KDC-REQ
