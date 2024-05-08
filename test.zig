@@ -154,15 +154,15 @@ test {
     const w = fbs_write.writer();
 
     // Length of the entire packet
-    try w.writeInt(u32, 0x7e, .big);
+    try w.writeInt(u32, 0xff, .big);
 
     // AS-REQ          ::= [APPLICATION 10] KDC-REQ
     try w.writeByte(asn1.Tag.extra(.constructed, .application, 10).int());
-    try w.writeByte(0x7c);
+    try w.writeByte(0xff); // Dummy value, computed later
 
     // KDC-REQ         ::= SEQUENCE {
     try w.writeByte(@intFromEnum(asn1.Tag.sequence));
-    try w.writeByte(0x7a);
+    try w.writeByte(0xff); // Dummy value, computed later
 
     //        pvno            [1] INTEGER (5) , (version)
     try w.writeByte(asn1.Tag.extra(.constructed, .context, 1).int());
@@ -180,11 +180,11 @@ test {
 
     //        req-body        [4] KDC-REQ-BODY
     try w.writeByte(asn1.Tag.extra(.constructed, .context, 4).int());
-    try w.writeByte(0x6e);
+    try w.writeByte(0xff); // Dummy value, computed later
 
     // KDC-REQ-BODY    ::= SEQUENCE {
     try w.writeByte(@intFromEnum(asn1.Tag.sequence));
-    try w.writeByte(0x6c);
+    try w.writeByte(0xff); // Dummy value, computed later
 
     //        kdc-options             [0] KDCOptions,
     try w.writeByte(asn1.Tag.extra(.constructed, .context, 0).int());
@@ -273,11 +273,18 @@ test {
     try w.writeByte(1);
     try w.writeByte(23); //      { ['rc4-hmac'] = 23 },
 
-    std.debug.print("len: 0x{x}\n", .{fbs_write.getWritten().len});
+    // Fixups
+    const total_len: u32 = @intCast(fbs_write.getWritten().len);
+    std.mem.writeInt(u32, krb_as_req_enc[0..4], total_len - 4, .big);
+    std.mem.writeInt(u8, krb_as_req_enc[5..6], @intCast(total_len - 6), .big);
+    std.mem.writeInt(u8, krb_as_req_enc[7..8], @intCast(total_len - 8), .big);
+    std.mem.writeInt(u8, krb_as_req_enc[19..20], @intCast(total_len - 20), .big);
+    std.mem.writeInt(u8, krb_as_req_enc[21..22], @intCast(total_len - 22), .big);
+
     try std.testing.expect(std.mem.eql(
         u8,
-        krb_as_req_enc[0..fbs_write.getWritten().len],
-        krb_as_req[0..fbs_write.getWritten().len],
+        krb_as_req_enc[0..total_len],
+        krb_as_req[0..total_len],
     ));
 }
 
