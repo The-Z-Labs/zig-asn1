@@ -51,8 +51,11 @@ test {
         0x76, 0x81, 0xa8, 0x0e, 0x30, 0x0c, 0x02, 0x01, 0x12, 0x02, 0x01, 0x11, 0x02, 0x01, 0x10, 0x02,
         0x01, 0x17,
     };
-    var fbs = std.io.fixedBufferStream(&krb_as_req);
-    const r = fbs.reader();
+    var fbs_read = std.io.fixedBufferStream(&krb_as_req);
+    const r = fbs_read.reader();
+
+    const user_name = "nmap";
+    const realm = "ZZZZZ";
 
     // Length of the entire packet
     try expectEqual(try r.readInt(u32, .big), 0x7e);
@@ -141,6 +144,141 @@ test {
     try expectEqual(try asn1.readInt(r, u8), 17);
     try expectEqual(try asn1.readInt(r, u8), 16);
     try expectEqual(try asn1.readInt(r, u8), 23);
+
+    //
+    // Encoding
+    //
+
+    var krb_as_req_enc: [256]u8 = undefined;
+    var fbs_write = std.io.fixedBufferStream(&krb_as_req_enc);
+    const w = fbs_write.writer();
+
+    // Length of the entire packet
+    try w.writeInt(u32, 0x7e, .big);
+
+    // AS-REQ          ::= [APPLICATION 10] KDC-REQ
+    try w.writeByte(asn1.Tag.extra(.constructed, .application, 10).int());
+    try w.writeByte(0x7c);
+
+    // KDC-REQ         ::= SEQUENCE {
+    try w.writeByte(@intFromEnum(asn1.Tag.sequence));
+    try w.writeByte(0x7a);
+
+    //        pvno            [1] INTEGER (5) , (version)
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 1).int());
+    try w.writeByte(3);
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(1);
+    try w.writeByte(5);
+
+    //        msg-type        [2] INTEGER (10 -- AS -- | 12 -- TGS --),
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 2).int());
+    try w.writeByte(3);
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(1);
+    try w.writeByte(10);
+
+    //        req-body        [4] KDC-REQ-BODY
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 4).int());
+    try w.writeByte(0x6e);
+
+    // KDC-REQ-BODY    ::= SEQUENCE {
+    try w.writeByte(@intFromEnum(asn1.Tag.sequence));
+    try w.writeByte(0x6c);
+
+    //        kdc-options             [0] KDCOptions,
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 0).int());
+    try w.writeByte(7);
+    try w.writeByte(@intFromEnum(asn1.Tag.bit_string));
+    try w.writeByte(5);
+    try w.writeByte(0); // padding
+    try w.writeInt(u32, 0x40000000, .big);
+
+    //        cname                   [1] PrincipalName OPTIONAL
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 1).int());
+    try w.writeByte(user_name.len + 13);
+    try w.writeByte(@intFromEnum(asn1.Tag.sequence));
+    try w.writeByte(user_name.len + 11);
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 0).int());
+    try w.writeByte(3);
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(1);
+    try w.writeByte(1); // type == 1 (NT-PRINCIPAL)
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 1).int());
+    try w.writeByte(user_name.len + 4);
+    try w.writeByte(@intFromEnum(asn1.Tag.sequence));
+    try w.writeByte(user_name.len + 2);
+    try w.writeByte(@intFromEnum(asn1.Tag.general_string));
+    try w.writeByte(user_name.len);
+    try w.writeAll(user_name);
+
+    //        realm                   [2] Realm
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 2).int());
+    try w.writeByte(realm.len + 2);
+    try w.writeByte(@intFromEnum(asn1.Tag.general_string));
+    try w.writeByte(realm.len);
+    try w.writeAll(realm);
+
+    //        sname                   [3] PrincipalName OPTIONAL,
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 3).int());
+    try w.writeByte(realm.len + 21);
+    try w.writeByte(@intFromEnum(asn1.Tag.sequence));
+    try w.writeByte(realm.len + 19);
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 0).int());
+    try w.writeByte(3);
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(1);
+    try w.writeByte(2); // type == 2 (NT-SRV-INST)
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 1).int());
+    try w.writeByte(realm.len + 12);
+    try w.writeByte(@intFromEnum(asn1.Tag.sequence));
+    try w.writeByte(realm.len + 10);
+    try w.writeByte(@intFromEnum(asn1.Tag.general_string));
+    try w.writeByte("krbtgt".len);
+    try w.writeAll("krbtgt");
+    try w.writeByte(@intFromEnum(asn1.Tag.general_string));
+    try w.writeByte(realm.len);
+    try w.writeAll(realm);
+
+    //        till                    [5] KerberosTime,
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 5).int());
+    try w.writeByte(17);
+    try w.writeByte(@intFromEnum(asn1.Tag.generalized_time));
+    try w.writeByte(15);
+    // local from = os.date("%Y%m%d%H%M%SZ", fromdate)
+    try w.writeAll("20240427041244Z"); // TODO: Max. time, no expiration: 19700101000000Z
+
+    //        nonce                   [7] UInt32,
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 7).int());
+    try w.writeByte(6);
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(4);
+    try w.writeInt(u32, 155874945, .big);
+
+    //        etype                   [8] SEQUENCE OF Int32 -- EncryptionType
+    try w.writeByte(asn1.Tag.extra(.constructed, .context, 8).int());
+    try w.writeByte(14);
+    try w.writeByte(@intFromEnum(asn1.Tag.sequence));
+    try w.writeByte(12);
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(1);
+    try w.writeByte(18); //      { ['aes256-cts-hmac-sha1-96'] = 18 },
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(1);
+    try w.writeByte(17); //      { ['aes128-cts-hmac-sha1-96'] = 17 },
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(1);
+    try w.writeByte(16); //      { ['des3-cbc-sha1'] = 16 },
+    try w.writeByte(@intFromEnum(asn1.Tag.integer));
+    try w.writeByte(1);
+    try w.writeByte(23); //      { ['rc4-hmac'] = 23 },
+
+    std.debug.print("len: 0x{x}\n", .{fbs_write.getWritten().len});
+    try std.testing.expect(std.mem.eql(
+        u8,
+        krb_as_req_enc[0..fbs_write.getWritten().len],
+        krb_as_req[0..fbs_write.getWritten().len],
+    ));
 }
 
 // test certificate from https://tls13.xargs.org/certificate.html
