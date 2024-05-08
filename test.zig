@@ -154,7 +154,7 @@ test {
     const w = fbs_write.writer();
 
     // Length of the entire packet
-    try w.writeInt(u32, 0xff, .big);
+    try w.writeInt(u32, 0xff, .big); // Dummy value, computed later
 
     // AS-REQ          ::= [APPLICATION 10] KDC-REQ
     try w.writeByte(asn1.Tag.extra(.constructed, .application, 10).int());
