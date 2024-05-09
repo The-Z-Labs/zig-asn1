@@ -288,6 +288,69 @@ test {
     ));
 }
 
+test {
+    const user_name = "nma8jddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddpuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuux0";
+    const realm = "ZZZdwhdjwhdjwhdjwhjdZZaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay1";
+
+    var buffer: [512]u8 = undefined;
+    const packet = try asn1.encodeKrbAsReq(buffer[0..], user_name, realm);
+
+    const total_len: u32 = @intCast(packet.len);
+    try std.testing.expect(total_len == 427);
+
+    var fbs_read = std.io.fixedBufferStream(packet);
+    const r = fbs_read.reader();
+
+    // Length of the entire packet
+    try expectEqual(try r.readInt(u32, .big), total_len - 4);
+
+    // AS-REQ          ::= [APPLICATION 10] KDC-REQ
+    try expectTag(r, asn1.Tag.extra(.constructed, .application, 10), total_len - 8);
+
+    //--------------
+
+    // KDC-REQ         ::= SEQUENCE {
+    try expectTag(r, .sequence, total_len - 12);
+
+    //        pvno            [1] INTEGER (5) , (version)
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), 3);
+    try expectEqual(try asn1.readInt(r, u8), 5);
+
+    //        msg-type        [2] INTEGER (10 -- AS -- | 12 -- TGS --),
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), 3);
+    try expectEqual(try asn1.readInt(r, u8), 10);
+
+    //        req-body        [4] KDC-REQ-BODY
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 4), total_len - 26);
+
+    //--------------
+
+    // KDC-REQ-BODY    ::= SEQUENCE {
+    try expectTag(r, .sequence, total_len - 30);
+
+    //        kdc-options             [0] KDCOptions,
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 7);
+    try expectTag(r, .bit_string, 5);
+    try expectBytes(r, &.{0x00}); // padding?
+    try expectEqual(try r.readInt(u32, .big), 0x40000000); // options
+
+    //        cname                   [1] PrincipalName OPTIONAL
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), user_name.len + 13);
+    // { user } (encodePrincipal)
+    try expectTag(r, .sequence, user_name.len + 11);
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 0), 3);
+    try expectEqual(try asn1.readInt(r, u8), 1); // type == 1 (NT-PRINCIPAL)
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 1), user_name.len + 4);
+    try expectTag(r, .sequence, user_name.len + 2);
+    try expectTag(r, .general_string, user_name.len);
+    try expectBytes(r, user_name);
+
+    //        realm                   [2] Realm
+    try expectTag(r, asn1.Tag.extra(.constructed, .context, 2), realm.len + 2);
+    try expectTag(r, .general_string, realm.len);
+    try expectBytes(r, realm);
+}
+
 // test certificate from https://tls13.xargs.org/certificate.html
 test {
     const cert = [_]u8{
