@@ -121,6 +121,9 @@ pub fn readInt(reader: anytype, comptime Int: type) !Int {
 }
 
 pub fn encodeKrbAsReq(buffer: []u8, user_name: []const u8, realm: []const u8) ![]const u8 {
+    std.debug.assert(user_name.len <= 100);
+    std.debug.assert(realm.len <= 100);
+
     var fbs_write = std.io.fixedBufferStream(buffer);
     const w = fbs_write.writer();
 
