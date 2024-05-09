@@ -1,6 +1,7 @@
 const std = @import("std");
 const string = []const u8;
 const asn1 = @import("asn1.zig");
+const krb = @import("kerberos.zig");
 const assert = std.debug.assert;
 
 test {
@@ -295,7 +296,7 @@ test {
         "ZZZdwhdjwhdjwhdjwhjdZZaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay1";
 
     var buffer: [512]u8 = undefined;
-    const packet = try asn1.encodeKrbAsReq(buffer[0..], user_name, realm);
+    const packet = try krb.encodeKrbAsReq(buffer[0..], user_name, realm);
 
     const total_len: u32 = @intCast(packet.len);
 
