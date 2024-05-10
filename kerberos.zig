@@ -2,7 +2,7 @@ const std = @import("std");
 const asn1 = @import("asn1.zig");
 const Tag = asn1.Tag;
 
-pub fn encodeKrbAsReq(buffer: []u8, user_name: []const u8, realm: []const u8) ![]const u8 {
+pub fn encodeAsReq(buffer: []u8, user_name: []const u8, realm: []const u8) ![]const u8 {
     std.debug.assert(user_name.len <= 100);
     std.debug.assert(realm.len <= 100);
 

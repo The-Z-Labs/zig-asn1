@@ -296,7 +296,7 @@ test {
         "ZZZdwhdjwhdjwhdjwhjdZZaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay1";
 
     var buffer: [512]u8 = undefined;
-    const packet = try krb.encodeKrbAsReq(buffer[0..], user_name, realm);
+    const packet = try krb.encodeAsReq(buffer[0..], user_name, realm);
 
     const total_len: u32 = @intCast(packet.len);
 
